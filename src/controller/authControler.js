@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs'
 import {generateToken} from '../utils/generateToken.js'
 
 export const register = async (req, res) => {
-  const {nombre, email, password, rol_id = 1} = req.body
+  const {nombre, email, password, rol_id = 2} = req.body
 
   try {
     const userExist = await pool.query('SELECT * FROM usuarios where email = $1', [email])
@@ -14,7 +14,7 @@ export const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    await pool.query('INSERT INTO usuarios (nombre, email, password) VALUES($1,$2,$3)', [nombre, email, hashedPassword, rol_id])
+    await pool.query('INSERT INTO usuarios (nombre, email, password, rol_id) VALUES($1,$2,$3,$4)', [nombre, email, hashedPassword, rol_id])
 
     res.status(201).json({message: 'Usuario registrado correctamente'})
   }
