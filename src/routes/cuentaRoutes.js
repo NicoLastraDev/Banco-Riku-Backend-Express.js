@@ -1,12 +1,12 @@
 // routes/cuentaRoutes.js
 import express from 'express';
 import pool from '../config/db.js';
-import { authMiddleware } from '../middlewares/authMiddleware.js';
+import { protect } from '../middlewares/authMiddlewares.js';
 
 const router = express.Router();
 
 // GET /api/cuenta/info - Obtiene la cuenta del usuario autenticado
-router.get('/info', authMiddleware, async (req, res) => {
+router.get('/info', protect, async (req, res) => {
   try {
     const usuarioId = req.user.id;
 

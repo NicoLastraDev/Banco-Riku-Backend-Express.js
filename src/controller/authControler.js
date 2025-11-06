@@ -5,55 +5,81 @@ import {generateToken} from '../utils/generateToken.js'
 export const register = async (req, res) => {
   const {nombre, email, password, rol_id = 2} = req.body
 
+  console.log('🔔 [BACKEND 1] Register INICIADO -', email, new Date().toISOString());
+
   try {
+    console.log('🔔 [BACKEND 2] Verificando si usuario existe...');
     const userExist = await pool.query('SELECT * FROM usuarios where email = $1', [email])
 
     if(userExist.rows.length > 0){
+      console.log('❌ [BACKEND 3] Usuario YA EXISTE en DB:', email);
       return res.status(400).json({message: 'Usuario ya registrado'})
     }
 
+    console.log('🔔 [BACKEND 4] Usuario NO existe, procediendo con registro...');
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    await pool.query('INSERT INTO usuarios (nombre, email, password, rol_id) VALUES($1,$2,$3,$4)', [nombre, email, hashedPassword, rol_id])
+    console.log('🔔 [BACKEND 5] Insertando usuario en DB...');
+    const result = await pool.query(
+      'INSERT INTO usuarios (nombre, email, password, rol_id) VALUES($1,$2,$3,$4) RETURNING id, nombre, email', 
+      [nombre, email, hashedPassword, rol_id]
+    );
 
-    res.status(201).json({message: 'Usuario registrado correctamente'})
-  }
+    const newUser = result.rows[0];
+    console.log('✅ [BACKEND 6] Usuario INSERTADO con ID:', newUser.id);
 
-  catch(error){
-    console.error(error)
-    res.status(500).json({message: 'Error en el servidor'})
+    const token = generateToken(newUser.id);
+    console.log('✅ [BACKEND 7] Token generado para usuario:', newUser.id);
+
+    console.log('✅ [BACKEND 8] Enviando respuesta exitosa');
+    return res.status(201).json({
+      message: 'Usuario registrado correctamente',
+      token: token,
+      user: {
+        id: newUser.id,
+        nombre: newUser.nombre,
+        email: newUser.email,
+        roles: ['user']
+      }
+    });
+
+  } catch (error) {
+    console.error('💥 [BACKEND ERROR] En register:', error.message);
+    return res.status(500).json({message: 'Error en el servidor'})
   }
 }
 
   export const login = async(req,res) => {
-    const {email, password} = req.body
+  const {email, password} = req.body
 
-    try {
-      
-      const result = await pool.query('SELECT * FROM usuarios where email = $1', [email])
+  try {
+    const result = await pool.query('SELECT * FROM usuarios where email = $1', [email])
 
-      if (result.rows.length === 0) {
-        return res.status(401).json({message: 'No se ha registrado el correo'})
-      }
+    if (result.rows.length === 0) {
+      return res.status(401).json({message: 'No se ha registrado el correo'})
+    }
 
-      const user = result.rows[0]
+    const user = result.rows[0]
 
-      const isMatch = await bcrypt.compare(password, user.password)
+    const isMatch = await bcrypt.compare(password, user.password)
 
-      if(!isMatch) {
-        return res.status(401).json({message: 'Credenciales invalidas'})
-      }
+    if(!isMatch) {
+      return res.status(401).json({message: 'Credenciales invalidas'})
+    }
 
-      res.json({
+    // ✅ Asegurar que retorna la misma estructura
+    return res.json({
+      token: generateToken(user.id),
+      user: {
         id: user.id,
         nombre: user.nombre,
         email: user.email,
-        rol_id: user.rol_id,
-        token: generateToken(user.id)
-      })
+        roles: ['user']  // ← Mismo formato que register
+      }
+    })
 
-    } catch (error) {
-      console.error(error)
-      res.status(500).json({message: 'Error en el servidor'})
-    }
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({message: 'Error en el servidor'})
   }
+}

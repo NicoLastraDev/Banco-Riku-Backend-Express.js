@@ -27,7 +27,8 @@ app.get('/api', (req, res) => {
     message: 'API banco-app con PostgreSQL 👌👌👌',
     endpoints: {
       auth: '/api/auth',
-      beneficiaries: '/api/beneficiaries'
+      beneficiaries: '/api/beneficiaries',
+      cuwenta: '/api/cuenta'
     }
   });
 });
