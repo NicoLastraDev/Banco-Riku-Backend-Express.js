@@ -1,127 +1,149 @@
-import e from 'cors'
 import pool from '../config/db.js'
 
-//buscar usuario por numero de cuenta
+// Buscar usuario por numero de cuenta
 export const searchAccount = async (req, res) => {
-  const {numero_cuenta} = req.body
-  const userId = req.user.id // ID del usuario identificado
+  console.log('🟢 SEARCH ACCOUNT ENDPOINT HIT - Body:', req.body)
+  const { numero_cuenta } = req.body
+  const userId = req.user.id // ID del usuario autenticado
 
   try {
-    //verificar que no sea la propia cuenta
-    const ownAcount = await pool.query('SELECT id from cuentas WHERE usuario_id = $1 AND numero_cuenta = $2', [userId, numero_cuenta])
+    // 🔥 SOLUCIÓN: Remover guiones del número de cuenta recibido
+    const numeroCuentaLimpio = numero_cuenta.replace(/-/g, '')
+    console.log('🔍 Número de cuenta limpio:', numeroCuentaLimpio)
 
-    if(ownAcount.rows.length > 0) {
-      return res.status(400).json({message: 'No puedes agregar tu propia cuenta como destinatario'})
+    // Verificar que no sea la propia cuenta (también aplicar REPLACE aquí)
+    const ownAccount = await pool.query(
+      `SELECT id FROM cuentas 
+       WHERE usuario_id = $1 AND REPLACE(numero_cuenta, '-', '') = $2`, 
+      [userId, numeroCuentaLimpio]
+    )
+
+    if (ownAccount.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No puedes agregar tu propia cuenta como destinatario'
+      })
     }
 
-    //buscar el usuario por numero de cuenta
+    // 🔥 SOLUCIÓN: Buscar usando REPLACE para ignorar guiones
     const result = await pool.query(
-      `SELECT u.id, u.nombre, u.email, c.numero_cuenta, c.saldo_disponible
-        FROM usuarios u
-        INNER jOIN cuentas c ON u.id = c.usuario_id
-        WHERE c.numero_cuenta = $1`)
+      `SELECT u.id as usuario_id, u.nombre, c.numero_cuenta, c.tipo_cuenta
+      FROM usuarios u
+      INNER JOIN cuentas c ON u.id = c.usuario_id
+      WHERE REPLACE(c.numero_cuenta, '-', '') = $1`,
+      [numeroCuentaLimpio]
+    )
     
-    if(result.rows.length === 0) {
-      return res.status(404).json({message: 'Cuenta no encontrada'})
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Cuenta no encontrada'
+      })
     }
 
-    const userData = result.rows[0]
+    const accountData = result.rows[0]
 
-    //regresar informacion
-    res.json({
-      id: userData.id,
-      nombre: userData.nombre,
-      numero_cuenta: userData.numero_cuenta,
-      tipo_cuenta: userData.tipo_cuenta,
-      banco: userData.banco
+    return res.json({
+      success: true,
+      data: {
+        usuario_id: accountData.usuario_id,
+        nombre: accountData.nombre,
+        numero_cuenta: accountData.numero_cuenta, // Esto devuelve el formato con guiones
+        tipo_cuenta: accountData.tipo_cuenta
+      }
     })
-  } 
-  
-  catch (error) {
+
+  } catch (error) {
     console.log('Error buscando cuenta', error)
-    res.status(500).json({message: 'Error en el servidor'})
+    return res.status(500).json({
+      success: false,
+      message: 'Error en el servidor'
+    })
   }
 }
 
 /** ----------------------------------------------------------------- */
 
-//agregar destinatario
-export const addBeneficiary = async(req,res) => {
-  
-  const {nombre, nombre_cuenta, numero_cuenta, tipo_cuenta, banco_destino} = req.body
+// Agregar destinatario
+export const addBeneficiary = async (req, res) => {
+  const { nombre, nombre_cuenta, numero_cuenta, tipo_cuenta, banco_destino } = req.body
   const usuario_id = req.user.id
 
   try {
-    //verificar si ya existe como destinatario
-    const existingBeneficiary = await pool.query(`
-      SELECT id FROM beneficiarios
+    // Verificar si ya existe como destinatario
+    const existingBeneficiary = await pool.query(
+      `SELECT id FROM beneficiarios
       WHERE usuario_id = $1 AND numero_cuenta = $2`,
-      [usuario_id, numero_cuenta])
+      [usuario_id, numero_cuenta]
+    )
 
-    if(existingBeneficiary.rows.length > 0)
-      return res.status(400).json({sucess: 'false', message: 'el contacto ya existe en tu lista'})
+    if (existingBeneficiary.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'El contacto ya existe en tu lista'
+      })
+    }
 
-    //verificar que la cuenta exista
-    const accountExists = await pool.query(`
-      select id from cuentas where numero_cuenta = $1
-      `, [numero_cuenta])
+    // Verificar que la cuenta exista
+    const accountExists = await pool.query(
+  `SELECT id FROM cuentas WHERE REPLACE(numero_cuenta, '-', '') = $1`,
+  [numero_cuenta.replace(/-/g, '')]
+)
 
-    if(accountExists.rows.length === 0) {
+    if (accountExists.rows.length === 0) {
       return res.status(404).json({
-        sucess: 'false',
+        success: false,
         message: 'La cuenta destino no existe'
       })
     }
 
-    //agregar destinatario a la lista de beneficiarios
-    await pool.query(`
-      insert into beneficiarios 
+    // Agregar destinatario a la lista de beneficiarios
+    await pool.query(
+      `INSERT INTO beneficiarios 
       (usuario_id, nombre, nombre_cuenta, numero_cuenta, tipo_cuenta, banco_destino)
-      values ($1, $2, $3, $4, $5, $6)`,
-    [usuario_id, nombre, nombre_cuenta, numero_cuenta, tipo_cuenta, banco_destino || 'Banco Riku'])
+      VALUES ($1, $2, $3, $4, $5, $6)`,
+      [usuario_id, nombre, nombre_cuenta, numero_cuenta, tipo_cuenta, banco_destino || 'Banco Riku']
+    )
 
-    res.status(201).json({
-      sucess: 'true',
+    // ✅ AGREGAR RETURN aquí también
+    return res.status(201).json({
+      success: true,
       message: 'Destinatario agregado correctamente'
     })
 
-  }
-
-
-  catch (error) {
-    console.log('error al agregar destinatario', error)
-    res.status(500).json({
-      sucess: 'error',
+  } catch (error) {
+    console.log('Error al agregar destinatario', error)
+    return res.status(500).json({
+      success: false,
       message: 'Error en el servidor'
     })
   }
-
 }
 
 /**-------------------------------------------------------------------- */
 
-//obtener lista de destinatarios
+// Obtener lista de destinatarios
 export const getBeneficiaries = async (req, res) => {
   const usuario_id = req.user.id
 
   try {
-    
-  const result = await pool.query(`
-    select id, nombre, numero_cuenta, tipo_cuenta, banco_destino
-    from beneficiarios
-    where usuario_id = $1
-    order by nombre`, [usuario_id])
+    const result = await pool.query(
+      `SELECT id, nombre, numero_cuenta, tipo_cuenta, banco_destino
+      FROM beneficiarios
+      WHERE usuario_id = $1
+      ORDER BY nombre`,
+      [usuario_id]
+    )
 
-    res.json({
-      sucess: true,
+    // ✅ AGREGAR RETURN
+    return res.json({
+      success: true,
       data: result.rows
     })
 
-  }
-
-  catch (error) {
-    console.error('Error obteniendo destinatarios:', error);
-    res.status(500).json({ 
+  } catch (error) {
+    console.error('Error obteniendo destinatarios:', error)
+    return res.status(500).json({ 
       success: false,
       message: 'Error en el servidor' 
     })
@@ -130,17 +152,21 @@ export const getBeneficiaries = async (req, res) => {
 
 /**-------------------------------------------------------------------- */
 
-//eliminar destinatario
-
+// Eliminar destinatario
 export const deleteBeneficiary = async (req, res) => {
-  const {id} = req.params
+  const { id } = req.params
   const usuario_id = req.user.id
 
   try {
-    //verificar que el destinatario pertenezca al usuario
-    const result = await pool.query(`delete from beneficiarios where id = $1 and usuario_id = $2 returning id`, [id, usuario_id])
+    // Verificar que el destinatario pertenezca al usuario
+    const result = await pool.query(
+      `DELETE FROM beneficiarios 
+      WHERE id = $1 AND usuario_id = $2 
+      RETURNING id`,
+      [id, usuario_id]
+    )
 
-    if (result.rows.length === 0){
+    if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Destinatario no encontrado'
@@ -148,14 +174,12 @@ export const deleteBeneficiary = async (req, res) => {
     }
 
     res.json({
-        success: true,
-        message: 'Destinatario eliminado correctamente'
-      })
+      success: true,
+      message: 'Destinatario eliminado correctamente'
+    })
 
-  }
-  
-  catch (error) {
-    console.error('Error eliminando beneficiario:', error);
+  } catch (error) {
+    console.error('Error eliminando beneficiario:', error)
     res.status(500).json({ 
       success: false,
       message: 'Error en el servidor' 

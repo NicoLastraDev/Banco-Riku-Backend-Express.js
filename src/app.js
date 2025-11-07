@@ -15,7 +15,7 @@ app.use(express.json())
 
 //Luego las rutas
 app.use('/api/auth', authRoutes)
-app.use('/api/beneficiaries', beneficiaryRoutes)
+app.use('/api/beneficiarios', beneficiaryRoutes)
 app.use('/api/cuenta',cuentaRoutes)
 
 app.get('/', (req, res) => {
@@ -27,7 +27,7 @@ app.get('/api', (req, res) => {
     message: 'API banco-app con PostgreSQL 👌👌👌',
     endpoints: {
       auth: '/api/auth',
-      beneficiaries: '/api/beneficiaries',
+      beneficiaries: '/api/beneficiarios',
       cuwenta: '/api/cuenta'
     }
   });
