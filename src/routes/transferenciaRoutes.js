@@ -14,7 +14,7 @@ router.use(protect);
 // POST /api/transferencias - Realizar transferencia
 router.post('/', realizarTransferencia);
 
-// GET /api/transferencias/historial - Obtener historial
-router.get('/historial', obtenerHistorialTransferencias);
+// GET /api/transferencias - Obtener historial (cambiar a raíz)
+router.get('/', obtenerHistorialTransferencias);
 
 export default router;

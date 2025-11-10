@@ -5,6 +5,7 @@ import authRoutes from './routes/authRoutes.js'
 import beneficiaryRoutes from './routes/beneficiaryRoutes.js'
 import cuentaRoutes from './routes/cuentaRoutes.js'
 import transferenciaRoutes from './routes/transferenciaRoutes.js';
+import tarjetaRoutes from './routes/tarjetaRoutes.js'
 
 dotenv.config()
 
@@ -19,6 +20,8 @@ app.use('/api/auth', authRoutes)
 app.use('/api/beneficiarios', beneficiaryRoutes)
 app.use('/api/cuenta', cuentaRoutes)
 app.use('/api/transferencias', transferenciaRoutes);
+console.log('🔄 Cargando rutas de tarjetas...');
+app.use('/api/tarjetas', tarjetaRoutes)
 
 app.get('/', (req, res) => {
   res.send('API banco-app con postgreSQL 👌👌👌')
@@ -30,10 +33,13 @@ app.get('/api', (req, res) => {
     endpoints: {
       auth: '/api/auth',
       beneficiaries: '/api/beneficiarios',
-      cuenta: '/api/cuenta'
+      cuenta: '/api/cuenta',
+      tarjetas: '/api/tarjetas',
     }
   });
 });
+
+console.log('✅ Rutas de tarjetas cargadas');
 
 // Mover la inicialización del job AQUÍ, después de definir todo
 const startServer = () => {

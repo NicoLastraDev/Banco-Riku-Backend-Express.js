@@ -137,7 +137,13 @@ export const obtenerHistorialTransferencias = async (req, res) => {
     const usuario_id = req.user.id;
 
     const result = await pool.query(
-      `SELECT t.*, c.numero_cuenta
+      `SELECT 
+        t.*, 
+        c.numero_cuenta,
+        -- Obtener nombre del usuario de la cuenta destino
+        (SELECT u.nombre FROM cuentas c2 
+         JOIN usuarios u ON c2.usuario_id = u.id 
+         WHERE c2.numero_cuenta = t.cuenta_destino) as nombre_destinatario
        FROM transacciones t
        JOIN cuentas c ON t.cuenta_id = c.id
        WHERE c.usuario_id = $1 
