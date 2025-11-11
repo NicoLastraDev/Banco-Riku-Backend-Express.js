@@ -93,17 +93,17 @@ export const realizarTransferencia = async (req, res) => {
 
     // 7. Registrar transacción para cuenta destino (crédito)
     await client.query(
-      `INSERT INTO transacciones 
-       (cuenta_id, tipo_transaccion, monto, descripcion, cuenta_destino, fecha)
-       VALUES ($1, $2, $3, $4, $5, NOW())`,
-      [
-        cuentaDestino.id,
-        'TRANSFERENCIA_RECIBIDA',
-        monto,
-        descripcion || `Transferencia de ${cuentaOrigen.numero_cuenta}`,
-        cuentaOrigen.numero_cuenta
-      ]
-    );
+  `INSERT INTO transacciones 
+   (cuenta_id, tipo_transaccion, monto, descripcion, cuenta_destino, fecha)
+   VALUES ($1, $2, $3, $4, $5, NOW())`,
+  [
+    cuentaDestino.id,
+    'TRANSFERENCIA_RECIBIDA',
+    monto,
+    descripcion || `Transferencia de ${cuentaOrigen.numero_cuenta}`,
+    cuentaOrigen.numero_cuenta  // ← AQUÍ: Guardar la cuenta del REMITENTE
+  ]
+);
 
     await client.query('COMMIT');
 
@@ -140,10 +140,23 @@ export const obtenerHistorialTransferencias = async (req, res) => {
       `SELECT 
         t.*, 
         c.numero_cuenta,
-        -- Obtener nombre del usuario de la cuenta destino
-        (SELECT u.nombre FROM cuentas c2 
-         JOIN usuarios u ON c2.usuario_id = u.id 
-         WHERE c2.numero_cuenta = t.cuenta_destino) as nombre_destinatario
+        -- PARA ENVÍOS: nombre del DESTINATARIO (dueño de la cuenta destino)
+        CASE 
+          WHEN t.tipo_transaccion = 'TRANSFERENCIA_ENVIADA' THEN
+            (SELECT u.nombre FROM cuentas c2 
+             JOIN usuarios u ON c2.usuario_id = u.id 
+             WHERE c2.numero_cuenta = t.cuenta_destino)
+          ELSE NULL
+        END as nombre_destinatario,
+        
+        -- PARA RECEPCIONES: nombre del REMITENTE (dueño de la cuenta que aparece en cuenta_destino)
+        CASE 
+          WHEN t.tipo_transaccion = 'TRANSFERENCIA_RECIBIDA' THEN
+            (SELECT u.nombre FROM cuentas c2 
+             JOIN usuarios u ON c2.usuario_id = u.id 
+             WHERE c2.numero_cuenta = t.cuenta_destino)
+          ELSE NULL
+        END as nombre_remitente
        FROM transacciones t
        JOIN cuentas c ON t.cuenta_id = c.id
        WHERE c.usuario_id = $1 
@@ -152,6 +165,18 @@ export const obtenerHistorialTransferencias = async (req, res) => {
        LIMIT 50`,
       [usuario_id]
     );
+
+    // Log para debug
+    console.log('🔍 Transferencias con nombres corregidos:');
+    result.rows.forEach(t => {
+      console.log({
+        id: t.id,
+        tipo: t.tipo_transaccion,
+        cuenta_destino: t.cuenta_destino,
+        nombre_destinatario: t.nombre_destinatario,
+        nombre_remitente: t.nombre_remitente
+      });
+    });
 
     res.json({
       success: true,
