@@ -6,6 +6,7 @@ import beneficiaryRoutes from './routes/beneficiaryRoutes.js'
 import cuentaRoutes from './routes/cuentaRoutes.js'
 import transferenciaRoutes from './routes/transferenciaRoutes.js';
 import tarjetaRoutes from './routes/tarjetaRoutes.js'
+import notificacionRoutes from './routes/notificationRoutes.js';
 
 dotenv.config()
 
@@ -22,6 +23,7 @@ app.use('/api/cuenta', cuentaRoutes)
 app.use('/api/transferencias', transferenciaRoutes);
 console.log('🔄 Cargando rutas de tarjetas...');
 app.use('/api/tarjetas', tarjetaRoutes)
+app.use('/api/notificaciones', notificacionRoutes);
 
 app.get('/', (req, res) => {
   res.send('API banco-app con postgreSQL 👌👌👌')
@@ -35,6 +37,7 @@ app.get('/api', (req, res) => {
       beneficiaries: '/api/beneficiarios',
       cuenta: '/api/cuenta',
       tarjetas: '/api/tarjetas',
+      notificaciones: '/api/notificaciones',
     }
   });
 });

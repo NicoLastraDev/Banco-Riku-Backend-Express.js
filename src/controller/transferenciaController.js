@@ -1,7 +1,5 @@
-// controllers/transferenciaController.js
 import pool from '../config/db.js';
 
-// Realizar transferencia
 export const realizarTransferencia = async (req, res) => {
   const client = await pool.connect();
   
@@ -13,7 +11,21 @@ export const realizarTransferencia = async (req, res) => {
 
     console.log('💸 Iniciando transferencia:', { cuenta_destino, monto, descripcion, usuario_id });
 
-    // 1. Obtener cuenta origen del usuario
+    // ✅ 1. PRIMERO OBTENER EL NOMBRE DEL USUARIO QUE ENVÍA
+    const usuarioOrigenResult = await client.query(
+      'SELECT nombre FROM usuarios WHERE id = $1',
+      [usuario_id]
+    );
+    
+    if (usuarioOrigenResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ success: false, message: 'Usuario no encontrado' });
+    }
+    
+    const nombreRemitente = usuarioOrigenResult.rows[0].nombre;
+    console.log('✅ Nombre del remitente:', nombreRemitente);
+
+    // 2. Obtener cuenta de origen (del usuario que envía)
     const cuentaOrigenResult = await client.query(
       'SELECT id, saldo, numero_cuenta FROM cuentas WHERE usuario_id = $1',
       [usuario_id]
@@ -21,7 +33,7 @@ export const realizarTransferencia = async (req, res) => {
 
     if (cuentaOrigenResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return res.status(404).json({
+      return res.status(400).json({
         success: false,
         message: 'No se encontró tu cuenta'
       });
@@ -29,8 +41,8 @@ export const realizarTransferencia = async (req, res) => {
 
     const cuentaOrigen = cuentaOrigenResult.rows[0];
 
-    // 2. Verificar saldo suficiente
-    if (Number(cuentaOrigen.saldo) < Number(monto)) {
+    // 3. Verificar saldo suficiente
+    if (cuentaOrigen.saldo < monto) {
       await client.query('ROLLBACK');
       return res.status(400).json({
         success: false,
@@ -38,7 +50,7 @@ export const realizarTransferencia = async (req, res) => {
       });
     }
 
-    // 3. Obtener cuenta destino
+    // 4. Obtener cuenta de destino
     const cuentaDestinoResult = await client.query(
       'SELECT id, usuario_id, saldo, numero_cuenta FROM cuentas WHERE numero_cuenta = $1',
       [cuenta_destino]
@@ -46,7 +58,7 @@ export const realizarTransferencia = async (req, res) => {
 
     if (cuentaDestinoResult.rows.length === 0) {
       await client.query('ROLLBACK');
-      return res.status(404).json({
+      return res.status(400).json({
         success: false,
         message: 'Cuenta destino no encontrada'
       });
@@ -54,29 +66,18 @@ export const realizarTransferencia = async (req, res) => {
 
     const cuentaDestino = cuentaDestinoResult.rows[0];
 
-    // 4. Verificar que no sea la misma cuenta
-    if (cuentaOrigen.numero_cuenta === cuentaDestino.numero_cuenta) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({
-        success: false,
-        message: 'No puedes transferir a tu propia cuenta'
-      });
-    }
-
-    // 5. Realizar las actualizaciones de saldo
-    // Restar de cuenta origen
+    // 5. Actualizar saldos
     await client.query(
-      'UPDATE cuentas SET saldo = saldo - $1, updated_at = NOW() WHERE id = $2',
+      'UPDATE cuentas SET saldo = saldo - $1 WHERE id = $2',
       [monto, cuentaOrigen.id]
     );
 
-    // Sumar a cuenta destino
     await client.query(
-      'UPDATE cuentas SET saldo = saldo + $1, updated_at = NOW() WHERE id = $2',
+      'UPDATE cuentas SET saldo = saldo + $1 WHERE id = $2',
       [monto, cuentaDestino.id]
     );
 
-    // 6. Registrar transacción para cuenta origen (débito)
+    // 6. Registrar transacciones
     const transaccionOrigen = await client.query(
       `INSERT INTO transacciones 
        (cuenta_id, tipo_transaccion, monto, descripcion, cuenta_destino, fecha)
@@ -86,28 +87,57 @@ export const realizarTransferencia = async (req, res) => {
         cuentaOrigen.id,
         'TRANSFERENCIA_ENVIADA',
         monto,
-        descripcion || `Transferencia a ${cuentaDestino.numero_cuenta}`,
-        cuentaDestino.numero_cuenta
+        descripcion || 'Transferencia realizada',
+        cuenta_destino
       ]
     );
 
-    // 7. Registrar transacción para cuenta destino (crédito)
     await client.query(
-  `INSERT INTO transacciones 
-   (cuenta_id, tipo_transaccion, monto, descripcion, cuenta_destino, fecha)
-   VALUES ($1, $2, $3, $4, $5, NOW())`,
-  [
-    cuentaDestino.id,
-    'TRANSFERENCIA_RECIBIDA',
-    monto,
-    descripcion || `Transferencia de ${cuentaOrigen.numero_cuenta}`,
-    cuentaOrigen.numero_cuenta  // ← AQUÍ: Guardar la cuenta del REMITENTE
-  ]
-);
+      `INSERT INTO transacciones 
+       (cuenta_id, tipo_transaccion, monto, descripcion, cuenta_destino, fecha)
+       VALUES ($1, $2, $3, $4, $5, NOW())`,
+      [
+        cuentaDestino.id,
+        'TRANSFERENCIA_RECIBIDA',
+        monto,
+        descripcion || 'Transferencia recibida',
+        cuentaOrigen.numero_cuenta
+      ]
+    );
 
     await client.query('COMMIT');
-
     console.log('✅ Transferencia completada exitosamente');
+
+    // 7. CREAR NOTIFICACIÓN PARA EL DESTINATARIO
+    try {
+      const destinatarioInfo = await client.query(
+        `SELECT u.id as usuario_id, u.nombre 
+         FROM cuentas c 
+         JOIN usuarios u ON c.usuario_id = u.id 
+         WHERE c.numero_cuenta = $1`,
+        [cuenta_destino]
+      );
+
+      if (destinatarioInfo.rows.length > 0) {
+        const destinatario = destinatarioInfo.rows[0];
+        
+        await client.query(
+          `INSERT INTO notificaciones 
+           (usuario_id, tipo, titulo, mensaje, leida, created_at)
+           VALUES ($1, $2, $3, $4, $5, NOW())`,
+          [
+            destinatario.usuario_id,
+            'success',
+            '💰 Transferencia Recibida',
+            `Recibiste $${monto} de ${nombreRemitente}`, // ✅ USAR nombreRemitente
+            false
+          ]
+        );
+        console.log('✅ Notificación creada para destinatario:', destinatario.usuario_id);
+      }
+    } catch (error) {
+      console.log('⚠️ Error creando notificación para destinatario:', error);
+    }
 
     res.json({
       success: true,
@@ -115,7 +145,8 @@ export const realizarTransferencia = async (req, res) => {
       data: {
         transaccion: transaccionOrigen.rows[0],
         saldo_actual: cuentaOrigen.saldo - monto,
-        cuenta_destino: cuentaDestino.numero_cuenta
+        cuenta_destino: cuentaDestino.numero_cuenta,
+        destinatario_notificado: true
       }
     });
 
@@ -131,7 +162,7 @@ export const realizarTransferencia = async (req, res) => {
   }
 };
 
-// Obtener historial de transferencias
+// Obtener historial de transferencias (este está correcto)
 export const obtenerHistorialTransferencias = async (req, res) => {
   try {
     const usuario_id = req.user.id;
@@ -140,7 +171,6 @@ export const obtenerHistorialTransferencias = async (req, res) => {
       `SELECT 
         t.*, 
         c.numero_cuenta,
-        -- PARA ENVÍOS: nombre del DESTINATARIO (dueño de la cuenta destino)
         CASE 
           WHEN t.tipo_transaccion = 'TRANSFERENCIA_ENVIADA' THEN
             (SELECT u.nombre FROM cuentas c2 
@@ -149,7 +179,6 @@ export const obtenerHistorialTransferencias = async (req, res) => {
           ELSE NULL
         END as nombre_destinatario,
         
-        -- PARA RECEPCIONES: nombre del REMITENTE (dueño de la cuenta que aparece en cuenta_destino)
         CASE 
           WHEN t.tipo_transaccion = 'TRANSFERENCIA_RECIBIDA' THEN
             (SELECT u.nombre FROM cuentas c2 
@@ -166,7 +195,6 @@ export const obtenerHistorialTransferencias = async (req, res) => {
       [usuario_id]
     );
 
-    // Log para debug
     console.log('🔍 Transferencias con nombres corregidos:');
     result.rows.forEach(t => {
       console.log({

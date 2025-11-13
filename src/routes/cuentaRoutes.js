@@ -1,7 +1,7 @@
 // routes/cuentaRoutes.js
 import express from 'express';
 import pool from '../config/db.js';
-import { protect } from '../middlewares/authMiddlewares.js';
+import { authenticateToken as protect } from '../middlewares/authMiddlewares.js';
 
 const router = express.Router();
 

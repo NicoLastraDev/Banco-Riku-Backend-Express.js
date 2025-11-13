@@ -4,7 +4,7 @@ import {
   realizarTransferencia, 
   obtenerHistorialTransferencias 
 } from '../controller/transferenciaController.js';
-import { protect } from '../middlewares/authMiddlewares.js';
+import { authenticateToken as protect } from '../middlewares/authMiddlewares.js';
 
 const router = express.Router();
 

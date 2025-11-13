@@ -5,7 +5,7 @@ import {
   getBeneficiaries,
   deleteBeneficiary 
 } from '../controller/beneficiaryController.js';
-import { protect } from '../middlewares/authMiddlewares.js';
+import { authenticateToken as protect } from '../middlewares/authMiddlewares.js';
 
 const router = express.Router();
 

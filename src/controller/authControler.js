@@ -1,6 +1,64 @@
 import pool from '../config/db.js'
 import bcrypt from 'bcryptjs'
 import {generateToken} from '../utils/generateToken.js'
+import jwt from 'jsonwebtoken'; // ← AGREGAR ESTE IMPORT
+
+// ✅ AGREGAR: Middleware de autenticación
+export const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  if (!token) {
+    return res.status(401).json({ message: 'Token requerido' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_for_development', (err, decoded) => {
+    if (err) {
+      return res.status(403).json({ message: 'Token inválido o expirado' });
+    }
+    
+    req.user = decoded; // { id: userId }
+    next();
+  });
+};
+
+// ✅ AGREGAR: Endpoint para verificar token
+export const checkStatus = async (req, res) => {
+  try {
+    console.log('🔍 [BACKEND] checkStatus llamado para usuario ID:', req.user.id);
+    
+    // Obtener información actualizada del usuario
+    const result = await pool.query(
+      'SELECT id, nombre, email FROM usuarios WHERE id = $1',
+      [req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+
+    const user = result.rows[0];
+    
+    console.log('✅ [BACKEND] Token válido para usuario:', user.email);
+
+    // Generar nuevo token (refresh)
+    const newToken = generateToken(user.id);
+
+    res.json({
+      token: newToken,
+      user: {
+        id: user.id,
+        nombre: user.nombre,
+        email: user.email,
+        roles: ['user']
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [BACKEND] Error en checkStatus:', error);
+    res.status(500).json({ message: 'Error del servidor' });
+  }
+};
 
 export const register = async (req, res) => {
   const {nombre, email, password, rol_id = 2} = req.body
@@ -49,7 +107,7 @@ export const register = async (req, res) => {
   }
 }
 
-  export const login = async(req,res) => {
+export const login = async(req,res) => {
   const {email, password} = req.body
 
   try {

@@ -1,6 +1,9 @@
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
 
-export const generateToken = (id) => {
-  return jwt.sign({id}, process.env.JWT_SECRET, {expiresIn: '30d'})
-}
-
+export const generateToken = (userId) => {
+  return jwt.sign(
+    { id: userId },
+    process.env.JWT_SECRET || 'fallback_secret_for_development',
+    { expiresIn: '24h' }
+  );
+};
