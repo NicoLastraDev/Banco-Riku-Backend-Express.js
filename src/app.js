@@ -55,7 +55,7 @@ const startServer = () => {
     try {
       import('./jobs/saldoJob.js')
         .then(module => {
-          module.startSaldoJob();
+          module.aumentarSaldosJob();
           console.log('🎯 Job de saldo inicializado correctamente');
         })
         .catch(error => {
