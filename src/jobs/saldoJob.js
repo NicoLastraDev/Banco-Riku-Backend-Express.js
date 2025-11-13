@@ -1,5 +1,5 @@
 // jobs/saldoJob.js
-import pool from '../db.js'
+import pool from '../db.js';
 
 async function aumentarSaldosJob() {
   console.log('🔄 EJECUTANDO JOB - Aumentando saldos...', new Date().toLocaleString());
