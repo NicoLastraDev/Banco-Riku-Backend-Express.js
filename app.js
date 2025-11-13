@@ -1,12 +1,12 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
-import authRoutes from './routes/authRoutes.js'
-import beneficiaryRoutes from './routes/beneficiaryRoutes.js'
-import cuentaRoutes from './routes/cuentaRoutes.js'
-import transferenciaRoutes from './routes/transferenciaRoutes.js';
-import tarjetaRoutes from './routes/tarjetaRoutes.js'
-import notificacionRoutes from './routes/notificationRoutes.js';
+import authRoutes from './src/routes/authRoutes.js'
+import beneficiaryRoutes from './src/routes/beneficiaryRoutes.js'
+import cuentaRoutes from './src/routes/cuentaRoutes.js'
+import transferenciaRoutes from './src/routes/transferenciaRoutes.js';
+import tarjetaRoutes from './src/routes/tarjetaRoutes.js'
+import notificacionRoutes from './src/routes/notificationRoutes.js';
 
 dotenv.config()
 
@@ -53,7 +53,7 @@ const startServer = () => {
     
     // Inicializar el job SOLO cuando el servidor esté listo
     try {
-      import('./jobs/saldoJob.js')
+      import('./src/jobs/saldoJob.js')
         .then(module => {
           module.aumentarSaldosJob();
           console.log('🎯 Job de saldo inicializado correctamente');
@@ -70,7 +70,7 @@ const startServer = () => {
 // Endpoint para probar el job manualmente
 app.post('/api/test/aumentar-saldo', async (req, res) => {
   try {
-    const { ejecutarJobManualmente } = await import('./jobs/saldoJob.js');
+    const { ejecutarJobManualmente } = await import('./src/jobs/saldoJob.js');
     const resultado = await ejecutarJobManualmente();
     
     res.json({
