@@ -144,8 +144,8 @@ export const obtenerHistorialTransferencias = async (req, res) => {
         CASE 
           WHEN t.tipo_transaccion = 'TRANSFERENCIA_ENVIADA' THEN
             (SELECT u.nombre FROM cuentas c2 
-             JOIN usuarios u ON c2.usuario_id = u.id 
-             WHERE c2.numero_cuenta = t.cuenta_destino)
+            JOIN usuarios u ON c2.usuario_id = u.id 
+            WHERE c2.numero_cuenta = t.cuenta_destino)
           ELSE NULL
         END as nombre_destinatario,
         
@@ -153,16 +153,16 @@ export const obtenerHistorialTransferencias = async (req, res) => {
         CASE 
           WHEN t.tipo_transaccion = 'TRANSFERENCIA_RECIBIDA' THEN
             (SELECT u.nombre FROM cuentas c2 
-             JOIN usuarios u ON c2.usuario_id = u.id 
-             WHERE c2.numero_cuenta = t.cuenta_destino)
+            JOIN usuarios u ON c2.usuario_id = u.id 
+            WHERE c2.numero_cuenta = t.cuenta_destino)
           ELSE NULL
         END as nombre_remitente
-       FROM transacciones t
-       JOIN cuentas c ON t.cuenta_id = c.id
-       WHERE c.usuario_id = $1 
-       AND t.tipo_transaccion IN ('TRANSFERENCIA_ENVIADA', 'TRANSFERENCIA_RECIBIDA')
-       ORDER BY t.fecha DESC
-       LIMIT 50`,
+      FROM transacciones t
+      JOIN cuentas c ON t.cuenta_id = c.id
+      WHERE c.usuario_id = $1 
+      AND t.tipo_transaccion IN ('TRANSFERENCIA_ENVIADA', 'TRANSFERENCIA_RECIBIDA')
+      ORDER BY t.fecha DESC
+      LIMIT 50`,
       [usuario_id]
     );
 
