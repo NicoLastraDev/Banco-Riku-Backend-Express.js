@@ -7,6 +7,7 @@ import cuentaRoutes from './src/routes/cuentaRoutes.js'
 import transferenciaRoutes from './src/routes/transferenciaRoutes.js';
 import tarjetaRoutes from './src/routes/tarjetaRoutes.js'
 import notificacionRoutes from './src/routes/notificationRoutes.js';
+import { iniciarAumentoSaldos } from './aumentarSaldoSinJob.js';
 
 dotenv.config()
 
@@ -42,38 +43,6 @@ app.get('/api', (req, res) => {
   });
 });
 
-// Agregar este endpoint para ejecutar el job manualmente
-// app.post('/api/jobs/aumentar-saldos', async (req, res) => {
-//   // Timeout de 30 segundos
-//   const timeout = setTimeout(() => {
-//     res.status(408).json({ 
-//       success: false, 
-//       error: 'Timeout - Job tomó demasiado tiempo' 
-//     })
-//   }, 30000)
-
-//   try {
-//     const { aumentarSaldosJob } = await import('./src/jobs/saldoJob.js')
-//     const resultado = await aumentarSaldosJob()
-    
-//     clearTimeout(timeout)
-//     res.json({ 
-//       success: true, 
-//       message: `Job ejecutado - ${resultado.length} usuarios actualizados`,
-//       usuarios_actualizados: resultado.length
-//     })
-    
-//   } catch (error) {
-//     clearTimeout(timeout)
-//     res.status(500).json({ 
-//       success: false, 
-//       error: error.message 
-//     })
-//   }
-// })
-
-
-
 console.log('✅ Rutas de tarjetas cargadas');
 
 // Mover la inicialización del job AQUÍ, después de definir todo
@@ -82,20 +51,7 @@ const startServer = () => {
   
   app.listen(PORT, () => {
     console.log('🚀 Servidor corriendo en puerto', PORT);
-    
-    // Inicializar el job SOLO cuando el servidor esté listo
-    // try {
-    //   import('./src/jobs/saldoJob.js')
-    //     .then(module => {
-    //       module.aumentarSaldosJob();
-    //       console.log('🎯 Job de saldo inicializado correctamente');
-    //     })
-    //     .catch(error => {
-    //       console.log('⚠️ No se pudo cargar el job de saldo:', error.message);
-    //     });
-    // } catch (error) {
-    //   console.log('⚠️ Error inicializando job:', error.message);
-    // }
+    iniciarAumentoSaldos();
   });
 };
 
