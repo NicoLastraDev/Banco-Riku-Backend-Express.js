@@ -7,7 +7,6 @@ import cuentaRoutes from './src/routes/cuentaRoutes.js'
 import transferenciaRoutes from './src/routes/transferenciaRoutes.js';
 import tarjetaRoutes from './src/routes/tarjetaRoutes.js'
 import notificacionRoutes from './src/routes/notificationRoutes.js';
-import { iniciarAumentoSaldos } from './src/jobs/aumentarSaldoSinJob.js';
 
 dotenv.config()
 
@@ -45,13 +44,46 @@ app.get('/api', (req, res) => {
 
 console.log('✅ Rutas de tarjetas cargadas');
 
+// Endpoint para cron-job.org - Aumento manual de saldos
+app.post('/api/admin/aumentar-saldos', async (req, res) => {
+  try {
+    console.log('📍 Cron job ejecutando aumento de saldos...', new Date().toLocaleString());
+    
+    // Importar pool directamente
+    const pool = await import('./src/config/db.js').then(m => m.default);
+    
+    // UPDATE directo y simple
+    const result = await pool.query(`
+      UPDATE usuarios 
+      SET saldo = saldo + 100
+      WHERE saldo < 5000
+    `);
+
+    console.log(`✅ Cron job completado. ${result.rowCount} usuarios actualizados`);
+    
+    res.json({
+      success: true,
+      message: `Cron job ejecutado - ${result.rowCount} usuarios actualizados`,
+      usuarios_actualizados: result.rowCount,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Error en cron job:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+
 // Mover la inicialización del job AQUÍ, después de definir todo
 const startServer = () => {
   const PORT = process.env.PORT || 4000;
   
   app.listen(PORT, () => {
     console.log('🚀 Servidor corriendo en puerto', PORT);
-    iniciarAumentoSaldos();
   });
 };
 

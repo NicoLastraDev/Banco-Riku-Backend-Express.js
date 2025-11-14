@@ -15,8 +15,7 @@ async function aumentarSaldosJob() {
 
     const result = await client.query(`
       UPDATE usuarios 
-      SET saldo = saldo + 10 
-      WHERE saldo < 1000
+      SET saldo = saldo + 100
       RETURNING id, saldo
     `)
 
