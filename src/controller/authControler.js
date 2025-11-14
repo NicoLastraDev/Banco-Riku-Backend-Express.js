@@ -110,24 +110,40 @@ export const register = async (req, res) => {
 export const login = async(req,res) => {
   const {email, password} = req.body
 
+  console.log('🔐 LOGIN CONTROLLER - INICIANDO');
+  console.log('📧 Email recibido:', email);
+
   try {
+    console.log('🔍 Buscando usuario en BD...');
     const result = await pool.query('SELECT * FROM usuarios where email = $1', [email])
+    console.log('👤 Resultado de query:', result.rows);
 
     if (result.rows.length === 0) {
+      console.log('❌ Usuario no encontrado');
       return res.status(401).json({message: 'No se ha registrado el correo'})
     }
 
     const user = result.rows[0]
+    console.log('✅ Usuario encontrado:', user.email);
 
+    console.log('🔑 Comparando passwords...');
     const isMatch = await bcrypt.compare(password, user.password)
+    console.log('✅ Resultado comparación:', isMatch);
 
     if(!isMatch) {
+      console.log('❌ Password incorrecto');
       return res.status(401).json({message: 'Credenciales invalidas'})
     }
 
+    console.log('🎫 Generando token...');
+    const token = generateToken(user.id);
+    console.log('✅ Token generado para usuario ID:', user.id);
+
+    console.log('✅ LOGIN EXITOSO para:', user.email);
+
     // ✅ Asegurar que retorna la misma estructura
     return res.json({
-      token: generateToken(user.id),
+      token: token,
       user: {
         id: user.id,
         nombre: user.nombre,
@@ -137,7 +153,8 @@ export const login = async(req,res) => {
     })
 
   } catch (error) {
-    console.error(error)
+    console.error('💥 ERROR EN LOGIN:', error);
+    console.error('💥 Stack trace:', error.stack);
     return res.status(500).json({message: 'Error en el servidor'})
   }
 }
