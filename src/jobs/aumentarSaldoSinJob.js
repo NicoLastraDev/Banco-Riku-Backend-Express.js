@@ -7,7 +7,7 @@ export const iniciarAumentoSaldos = () => {
       console.log('🔄 EJECUTANDO - Aumentando saldos...', new Date().toLocaleString());
       
       // Importar pool directamente
-      const pool = await import('./src/config/db.js').then(m => m.default);
+      const pool = await import('../config/db.js').then(m => m.default);
       
       // UPDATE directo y simple
       const result = await pool.query(`
