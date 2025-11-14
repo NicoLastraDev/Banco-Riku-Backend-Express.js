@@ -44,18 +44,6 @@ console.log('✅ Ruta /api/tarjetas registrada');
 app.use('/api/notificaciones', notificacionRoutes);
 console.log('✅ Ruta /api/notificaciones registrada');
 
-// Endpoint de prueba
-app.post('/api/auth/simple-login', (req, res) => {
-  console.log('🔍 SIMPLE LOGIN RECIBIDO:', req.body);
-  res.json({ 
-    token: 'simple-token-123', 
-    user: { 
-      id: 1, 
-      email: req.body.email, 
-      nombre: 'Usuario Simple' 
-    } 
-  });
-});
 
 // Endpoints básicos
 app.get('/', (req, res) => {

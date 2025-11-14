@@ -5,16 +5,17 @@ dotenv.config()
 
 const { Pool } = pkg
 
-// ✅ CORREGIR: Si DATABASE_URL no existe, debe ser string vacío, no número
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || '',
   ssl: process.env.DATABASE_URL ? {
     rejectUnauthorized: false
   } : false,
-  // Configuración para Render
-  max: 5,  // Reducido para plan gratis
+  // Configuración optimizada para Railway
+  max: 10,  // Railway permite más conexiones
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
+  // Agregar esto para mejor manejo de conexiones
+  allowExitOnIdle: true
 });
 
 pool.on('connect', () => {
