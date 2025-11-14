@@ -52,18 +52,18 @@ const startServer = () => {
     console.log('🚀 Servidor corriendo en puerto', PORT);
     
     // Inicializar el job SOLO cuando el servidor esté listo
-    try {
-      import('./src/jobs/saldoJob.js')
-        .then(module => {
-          module.aumentarSaldosJob();
-          console.log('🎯 Job de saldo inicializado correctamente');
-        })
-        .catch(error => {
-          console.log('⚠️ No se pudo cargar el job de saldo:', error.message);
-        });
-    } catch (error) {
-      console.log('⚠️ Error inicializando job:', error.message);
-    }
+    // try {
+    //   import('./src/jobs/saldoJob.js')
+    //     .then(module => {
+    //       module.aumentarSaldosJob();
+    //       console.log('🎯 Job de saldo inicializado correctamente');
+    //     })
+    //     .catch(error => {
+    //       console.log('⚠️ No se pudo cargar el job de saldo:', error.message);
+    //     });
+    // } catch (error) {
+    //   console.log('⚠️ Error inicializando job:', error.message);
+    // }
   });
 };
 
