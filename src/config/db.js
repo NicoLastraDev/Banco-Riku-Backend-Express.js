@@ -3,33 +3,26 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
-// const pool = new Pool({
-//   user: process.env.PGUSER,
-//   host: process.env.PGHOST,
-//   database: process.env.PGDATABASE,
-//   password: process.env.PGPASSWORD,
-//   port: process.env.PGPORT,
-// })
-
 const { Pool } = pkg
 
-// ✅ Usar DATABASE_URL de Render (esto es lo que Render provee automáticamente)
+// ✅ CORREGIR: Si DATABASE_URL no existe, debe ser string vacío, no número
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 10000,
-  ssl: {
+  connectionString: process.env.DATABASE_URL || '',
+  ssl: process.env.DATABASE_URL ? {
     rejectUnauthorized: false
-  },
-  // Configuración minimalista para evitar timeouts
-  max: 2,  // Reducido para plan gratis
-  idleTimeoutMillis: 10000,
-  connectionTimeoutMillis: 5000,
-  // Evitar verificaciones automáticas
-  allowExitOnIdle: true
-})
-
+  } : false,
+  // Configuración para Render
+  max: 5,  // Reducido para plan gratis
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
 
 pool.on('connect', () => {
   console.log('✅ Nueva conexión a BD establecida')
+})
+
+pool.on('error', (err) => {
+  console.error('💥 Error en pool de PostgreSQL:', err)
 })
 
 export default pool
