@@ -45,37 +45,37 @@ app.get('/api', (req, res) => {
 console.log('✅ Rutas de tarjetas cargadas');
 
 // Endpoint para cron-job.org - Aumento manual de saldos
-app.post('/api/aumentar-saldos', async (req, res) => {
-  try {
-    console.log('📍 Cron job ejecutando aumento de saldos...', new Date().toLocaleString());
+// app.post('/api/aumentar-saldos', async (req, res) => {
+//   try {
+//     console.log('📍 Cron job ejecutando aumento de saldos...', new Date().toLocaleString());
     
-    // Importar pool directamente
-    const pool = await import('./src/config/db.js').then(m => m.default);
+//     // Importar pool directamente
+//     const pool = await import('./src/config/db.js').then(m => m.default);
     
-    // UPDATE directo y simple
-    const result = await pool.query(`
-      UPDATE usuarios 
-      SET saldo = saldo + 100
-      WHERE saldo < 5000
-    `);
+//     // UPDATE directo y simple
+//     const result = await pool.query(`
+//       UPDATE usuarios 
+//       SET saldo = saldo + 100
+//       WHERE saldo < 5000
+//     `);
 
-    console.log(`✅ Cron job completado. ${result.rowCount} usuarios actualizados`);
+//     console.log(`✅ Cron job completado. ${result.rowCount} usuarios actualizados`);
     
-    res.json({
-      success: true,
-      message: `Cron job ejecutado - ${result.rowCount} usuarios actualizados`,
-      usuarios_actualizados: result.rowCount,
-      timestamp: new Date().toISOString()
-    });
+//     res.json({
+//       success: true,
+//       message: `Cron job ejecutado - ${result.rowCount} usuarios actualizados`,
+//       usuarios_actualizados: result.rowCount,
+//       timestamp: new Date().toISOString()
+//     });
     
-  } catch (error) {
-    console.error('❌ Error en cron job:', error.message);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
+//   } catch (error) {
+//     console.error('❌ Error en cron job:', error.message);
+//     res.status(500).json({
+//       success: false,
+//       error: error.message
+//     });
+//   }
+// });
 
 
 // Mover la inicialización del job AQUÍ, después de definir todo
