@@ -17,14 +17,14 @@ const { Pool } = pkg
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
-    rejectUnauthorized: false,
-    require: true
+    rejectUnauthorized: false
   },
-  // Configuración adicional para estabilidad
-  max: 5,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  maxUses: 7500, // Reciclar conexiones periódicamente
+  // Configuración minimalista para evitar timeouts
+  max: 2,  // Reducido para plan gratis
+  idleTimeoutMillis: 10000,
+  connectionTimeoutMillis: 5000,
+  // Evitar verificaciones automáticas
+  allowExitOnIdle: true
 })
 
 
@@ -32,7 +32,4 @@ pool.on('connect', () => {
   console.log('✅ Nueva conexión a BD establecida')
 })
 
-pool.on('error', (err) => {
-  console.error('❌ Error en pool de BD:', err.message)
-})
 export default pool

@@ -44,14 +44,33 @@ app.get('/api', (req, res) => {
 
 // Agregar este endpoint para ejecutar el job manualmente
 app.post('/api/jobs/aumentar-saldos', async (req, res) => {
+  // Timeout de 30 segundos
+  const timeout = setTimeout(() => {
+    res.status(408).json({ 
+      success: false, 
+      error: 'Timeout - Job tomó demasiado tiempo' 
+    })
+  }, 30000)
+
   try {
-    const { aumentarSaldosJob } = await import('./src/jobs/saldoJob.js');
-    await aumentarSaldosJob();
-    res.json({ success: true, message: 'Job ejecutado exitosamente' });
+    const { aumentarSaldosJob } = await import('./src/jobs/saldoJob.js')
+    const resultado = await aumentarSaldosJob()
+    
+    clearTimeout(timeout)
+    res.json({ 
+      success: true, 
+      message: `Job ejecutado - ${resultado.length} usuarios actualizados`,
+      usuarios_actualizados: resultado.length
+    })
+    
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    clearTimeout(timeout)
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    })
   }
-});
+})
 
 
 

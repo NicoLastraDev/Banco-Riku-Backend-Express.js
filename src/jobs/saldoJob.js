@@ -1,29 +1,35 @@
-import pool from '../config/db.js';
+import pkg from 'pg'
+const { Client } = pkg
 
 async function aumentarSaldosJob() {
   console.log('🔄 EJECUTANDO JOB - Aumentando saldos...', new Date().toLocaleString());
   
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  })
+
   try {
-    // Verificar conexión a la base de datos primero
-    await pool.query('SELECT 1');
-    console.log('✅ Conexión a BD verificada');
+    await client.connect()
+    console.log('✅ Conexión a BD establecida')
 
-    // Tu lógica de aumento de saldos aquí
-    const result = await pool.query(`
+    const result = await client.query(`
       UPDATE usuarios 
-      SET saldo = saldo + 100 
+      SET saldo = saldo + 10 
+      WHERE saldo < 1000
       RETURNING id, saldo
-    `);
+    `)
 
-    console.log(`✅ Job completado. ${result.rowCount} usuarios actualizados`);
-    return result.rows;
+    console.log(`✅ Job completado. ${result.rowCount} usuarios actualizados`)
+    return result.rows
     
   } catch (error) {
-    console.error('❌ ERROR en job:', error.message);
-    return [];
+    console.error('❌ ERROR en job:', error.message)
+    return []
+  } finally {
+    await client.end().catch(() => {}) // Silenciar error de cierre
   }
 }
 
-// ✅ EXPORTAR la función para que pueda ser importada
-export { aumentarSaldosJob };
-export default aumentarSaldosJob;
+export { aumentarSaldosJob }
+export default aumentarSaldosJob
