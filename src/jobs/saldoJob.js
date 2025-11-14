@@ -27,3 +27,5 @@ async function aumentarSaldosJob() {
 
 // Programar el job cada 5 minutos
 setInterval(aumentarSaldosJob, 5 * 60 * 1000);
+
+export default aumentarSaldosJob;
