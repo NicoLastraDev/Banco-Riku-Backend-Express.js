@@ -12,7 +12,7 @@ dotenv.config()
 
 const app = express()
 
-// ✅ AGREGAR: Middleware de debug PARA CADA REQUEST
+// Middleware de debug PARA CADA REQUEST
 app.use((req, res, next) => {
   console.log('📍 REQUEST RECIBIDO:', {
     method: req.method,
@@ -25,11 +25,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// Primero configurar middlewares
+// Middlewares
 app.use(cors())
 app.use(express.json())
 
-// ✅ AGREGAR: Logs para cada ruta
+// Registrar rutas
 console.log('🔄 REGISTRANDO RUTAS...');
 app.use('/api/auth', authRoutes);
 console.log('✅ Ruta /api/auth registrada');
@@ -39,17 +39,14 @@ app.use('/api/cuenta', cuentaRoutes);
 console.log('✅ Ruta /api/cuenta registrada');
 app.use('/api/transferencias', transferenciaRoutes);
 console.log('✅ Ruta /api/transferencias registrada');
-console.log('🔄 Cargando rutas de tarjetas...');
 app.use('/api/tarjetas', tarjetaRoutes);
 console.log('✅ Ruta /api/tarjetas registrada');
 app.use('/api/notificaciones', notificacionRoutes);
 console.log('✅ Ruta /api/notificaciones registrada');
 
-// ✅ AGREGAR: Endpoint de prueba DIRECTAMENTE en app.js
+// Endpoint de prueba
 app.post('/api/auth/simple-login', (req, res) => {
   console.log('🔍 SIMPLE LOGIN RECIBIDO:', req.body);
-  
-  // Respuesta simple sin base de datos
   res.json({ 
     token: 'simple-token-123', 
     user: { 
@@ -60,8 +57,9 @@ app.post('/api/auth/simple-login', (req, res) => {
   });
 });
 
+// Endpoints básicos
 app.get('/', (req, res) => {
-  res.send('API banco-app con postgreSQL 👌👌👌')
+  res.send('API banco-app con PostgreSQL 👌👌👌')
 })
 
 app.get('/api', (req, res) => {
@@ -79,14 +77,10 @@ app.get('/api', (req, res) => {
 
 console.log('✅ Todas las rutas cargadas');
 
-const startServer = () => {
-  const PORT = process.env.PORT || 4000;
-  
-  app.listen(PORT, () => {
-    console.log('🚀 Servidor corriendo en puerto', PORT);
-  });
-};
-
-startServer();
+// Iniciar servidor
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+  console.log('🚀 Servidor corriendo en puerto', PORT);
+});
 
 export default app

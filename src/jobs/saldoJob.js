@@ -26,9 +26,13 @@ async function aumentarSaldosJob() {
     console.error('❌ ERROR en job:', error.message)
     return []
   } finally {
-    await client.end().catch(() => {}) // Silenciar error de cierre
+    await client.end().catch(() => {})
   }
 }
 
-export { aumentarSaldosJob }
+// Solo ejecutar si se llama directamente (para testing)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  aumentarSaldosJob()
+}
+
 export default aumentarSaldosJob
