@@ -112,11 +112,18 @@ export const login = async(req,res) => {
 
   console.log('🔐 LOGIN CONTROLLER - INICIANDO');
   console.log('📧 Email recibido:', email);
+  console.log('🔑 Password recibido:', password ? 'PRESENTE' : 'FALTANTE');
 
   try {
-    console.log('🔍 Buscando usuario en BD...');
+    console.log('1. 🔍 Buscando usuario en BD...');
+    
+    // Verificar conexión a BD primero
+    console.log('1.1 Verificando conexión a BD...');
+    const pool = await import('../config/db.js').then(m => m.default);
+    console.log('1.2 Conexión a BD establecida');
+    
     const result = await pool.query('SELECT * FROM usuarios where email = $1', [email])
-    console.log('👤 Resultado de query:', result.rows);
+    console.log('1.3 Resultado de query:', result.rows);
 
     if (result.rows.length === 0) {
       console.log('❌ Usuario no encontrado');
@@ -125,36 +132,41 @@ export const login = async(req,res) => {
 
     const user = result.rows[0]
     console.log('✅ Usuario encontrado:', user.email);
+    console.log('👤 Datos usuario:', { id: user.id, nombre: user.nombre });
 
-    console.log('🔑 Comparando passwords...');
+    console.log('2. 🔑 Comparando passwords...');
+    console.log('2.1 Password recibido:', password);
+    console.log('2.2 Hash en BD:', user.password);
+    
     const isMatch = await bcrypt.compare(password, user.password)
-    console.log('✅ Resultado comparación:', isMatch);
+    console.log('2.3 Resultado comparación:', isMatch);
 
     if(!isMatch) {
       console.log('❌ Password incorrecto');
       return res.status(401).json({message: 'Credenciales invalidas'})
     }
 
-    console.log('🎫 Generando token...');
+    console.log('3. 🎫 Generando token...');
     const token = generateToken(user.id);
-    console.log('✅ Token generado para usuario ID:', user.id);
+    console.log('3.1 Token generado para usuario ID:', user.id);
 
     console.log('✅ LOGIN EXITOSO para:', user.email);
 
-    // ✅ Asegurar que retorna la misma estructura
     return res.json({
       token: token,
       user: {
         id: user.id,
         nombre: user.nombre,
         email: user.email,
-        roles: ['user']  // ← Mismo formato que register
+        roles: ['user']
       }
     })
 
   } catch (error) {
-    console.error('💥 ERROR EN LOGIN:', error);
-    console.error('💥 Stack trace:', error.stack);
+    console.error('💥 ERROR EN LOGIN CONTROLLER:');
+    console.error('💥 Mensaje:', error.message);
+    console.error('💥 Stack:', error.stack);
+    console.error('💥 Tipo:', typeof error);
     return res.status(500).json({message: 'Error en el servidor'})
   }
 }
