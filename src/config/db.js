@@ -15,7 +15,7 @@ const { Pool } = pkg
 
 // ✅ Usar DATABASE_URL de Render (esto es lo que Render provee automáticamente)
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 3000,
+  connectionString: process.env.DATABASE_URL || 10000,
   ssl: {
     rejectUnauthorized: false
   },
