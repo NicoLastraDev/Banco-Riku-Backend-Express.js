@@ -1,29 +1,29 @@
-import pool from '../config/db.js'
+import pool from '../config/db.js';
 
 async function aumentarSaldosJob() {
   console.log('🔄 EJECUTANDO JOB - Aumentando saldos...', new Date().toLocaleString());
   
   try {
-    // Verificar que el pool esté conectado
-    const client = await pool.connect()
-    
-    try {
-      const result = await client.query(`
-        UPDATE usuarios 
-        SET saldo = saldo + 10 
-        WHERE saldo < 1000
-        RETURNING id, saldo
-      `)
+    // Verificar conexión a la base de datos primero
+    await pool.query('SELECT 1');
+    console.log('✅ Conexión a BD verificada');
 
-      console.log(`✅ Job completado. ${result.rowCount} usuarios actualizados`)
-    } finally {
-      client.release() // Siempre liberar el cliente
-    }
+    // Tu lógica de aumento de saldos aquí
+    const result = await pool.query(`
+      UPDATE usuarios 
+      SET saldo = saldo + 100 
+      RETURNING id, saldo
+    `);
+
+    console.log(`✅ Job completado. ${result.rowCount} usuarios actualizados`);
+    return result.rows;
     
   } catch (error) {
-    console.error('❌ ERROR en job:', error.message)
+    console.error('❌ ERROR en job:', error.message);
+    return [];
   }
 }
 
-// Programar el job cada 5 minutos
-setInterval(aumentarSaldosJob, 5 * 60 * 1000)
+// ✅ EXPORTAR la función para que pueda ser importada
+export { aumentarSaldosJob };
+export default aumentarSaldosJob;

@@ -42,6 +42,19 @@ app.get('/api', (req, res) => {
   });
 });
 
+// Agregar este endpoint para ejecutar el job manualmente
+app.post('/api/jobs/aumentar-saldos', async (req, res) => {
+  try {
+    const { aumentarSaldosJob } = await import('./src/jobs/saldoJob.js');
+    await aumentarSaldosJob();
+    res.json({ success: true, message: 'Job ejecutado exitosamente' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
+
 console.log('✅ Rutas de tarjetas cargadas');
 
 // Mover la inicialización del job AQUÍ, después de definir todo

@@ -27,11 +27,6 @@ const pool = new Pool({
   maxUses: 7500, // Reciclar conexiones periódicamente
 })
 
-// Manejo de errores mejorado
-pool.on('error', (err, client) => {
-  console.error('❌ Error inesperado en el pool de BD:', err.message)
-})
-
 // Verificar conexión al inicio
 pool.query('SELECT NOW()')
   .then(() => console.log('✅ Conexión a BD verificada'))
