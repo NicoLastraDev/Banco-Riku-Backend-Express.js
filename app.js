@@ -45,7 +45,7 @@ app.get('/api', (req, res) => {
 console.log('✅ Rutas de tarjetas cargadas');
 
 // Endpoint para cron-job.org - Aumento manual de saldos
-app.post('/api/admin/aumentar-saldos', async (req, res) => {
+app.post('/api/aumentar-saldos', async (req, res) => {
   try {
     console.log('📍 Cron job ejecutando aumento de saldos...', new Date().toLocaleString());
     
