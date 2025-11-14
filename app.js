@@ -67,26 +67,6 @@ const startServer = () => {
   });
 };
 
-// Endpoint para probar el job manualmente
-app.post('/api/test/aumentar-saldo', async (req, res) => {
-  try {
-    const { ejecutarJobManualmente } = await import('./src/jobs/saldoJob.js');
-    const resultado = await ejecutarJobManualmente();
-    
-    res.json({
-      success: true,
-      message: `$${100 * resultado.length} agregados manualmente`,
-      cuentas_afectadas: resultado.length,
-      detalles: resultado
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error ejecutando job manual: ' + error.message
-    });
-  }
-});
-
 startServer();
 
 export default app
