@@ -46,17 +46,17 @@ app.use('/api/notificaciones', notificacionRoutes);
 console.log('✅ Ruta /api/notificaciones registrada');
 
 // ✅ AGREGAR: Endpoint de prueba DIRECTAMENTE en app.js
-app.post('/api/auth/debug-login', (req, res) => {
-  console.log('✅ DEBUG LOGIN FUNCIONANDO - Body:', req.body);
+app.post('/api/auth/simple-login', (req, res) => {
+  console.log('🔍 SIMPLE LOGIN RECIBIDO:', req.body);
+  
+  // Respuesta simple sin base de datos
   res.json({ 
-    success: true, 
-    message: 'Backend funcionando correctamente',
-    token: 'debug-token-123',
+    token: 'simple-token-123', 
     user: { 
       id: 1, 
-      email: req.body.email || 'test@debug.com', 
-      nombre: 'Usuario Debug' 
-    }
+      email: req.body.email, 
+      nombre: 'Usuario Simple' 
+    } 
   });
 });
 
