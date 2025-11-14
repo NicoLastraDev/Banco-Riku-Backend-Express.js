@@ -27,9 +27,12 @@ const pool = new Pool({
   maxUses: 7500, // Reciclar conexiones periódicamente
 })
 
-// Verificar conexión al inicio
-pool.query('SELECT NOW()')
-  .then(() => console.log('✅ Conexión a BD verificada'))
-  .catch(err => console.error('❌ Error conectando a BD:', err.message))
 
+pool.on('connect', () => {
+  console.log('✅ Nueva conexión a BD establecida')
+})
+
+pool.on('error', (err) => {
+  console.error('❌ Error en pool de BD:', err.message)
+})
 export default pool
