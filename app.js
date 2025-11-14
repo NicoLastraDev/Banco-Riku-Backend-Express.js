@@ -7,7 +7,7 @@ import cuentaRoutes from './src/routes/cuentaRoutes.js'
 import transferenciaRoutes from './src/routes/transferenciaRoutes.js';
 import tarjetaRoutes from './src/routes/tarjetaRoutes.js'
 import notificacionRoutes from './src/routes/notificationRoutes.js';
-import { iniciarAumentoSaldos } from './aumentarSaldoSinJob.js';
+import { iniciarAumentoSaldos } from './src/jobs/aumentarSaldoSinJob.js';
 
 dotenv.config()
 
