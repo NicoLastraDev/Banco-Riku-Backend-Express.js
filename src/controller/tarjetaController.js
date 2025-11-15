@@ -40,8 +40,8 @@ export const obtenerTarjetasUsuario = async (req, res) => {
       fecha_vencimiento: tarjeta.fecha_vencimiento,
       cvv: tarjeta.cvv,
       nombre_titular: tarjeta.nombre_titular,
-      tipo_tarjeta: tarjeta.tipo_tarjeta || 'débito', // Valor por defecto
-      marca_tarjeta: tarjeta.marca_tarjeta || 'Mastercard',
+      tipo_tarjeta: tarjeta.tipo_tarjeta || 'DEBITO', // Valor por defecto
+      marca_tarjeta: tarjeta.marca_tarjeta || 'MASTERCARD',
       saldo_actual: parseFloat(tarjeta.saldo_actual),
       created_at: tarjeta.created_at
     }));

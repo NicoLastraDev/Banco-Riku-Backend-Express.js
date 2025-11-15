@@ -129,7 +129,7 @@ export const register = async (req, res) => {
         generarFechaVencimiento(),
         generarCVV(),
         nombre.toUpperCase(),
-        'débito',
+        'DEBITO',
         'MASTERCARD',
         0.00
       ]
