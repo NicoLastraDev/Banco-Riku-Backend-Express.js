@@ -132,7 +132,7 @@ export const register = async (req, res) => {
         generarCVV(),
         nombre.toUpperCase(), // Nombre en mayúsculas
         'débito',
-        'Mastercard',
+        'MASTERCARD',
         0.00 // Saldo inicial
       ]
     );
