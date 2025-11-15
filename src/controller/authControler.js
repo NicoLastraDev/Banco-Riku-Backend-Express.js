@@ -2,6 +2,12 @@ import pool from '../config/db.js'
 import bcrypt from 'bcryptjs'
 import {generateToken} from '../utils/generateToken.js'
 import jwt from 'jsonwebtoken'; // ← AGREGAR ESTE IMPORT
+import { 
+  generarNumeroCuenta, 
+  generarNumeroTarjeta, 
+  generarFechaVencimiento, 
+  generarCVV 
+} from '../utils/tarjetaUtils.js';
 
 // ✅ AGREGAR: Middleware de autenticación
 export const authenticateToken = (req, res, next) => {
