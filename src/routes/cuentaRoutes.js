@@ -2,6 +2,11 @@
 import express from 'express';
 import pool from '../config/db.js';
 import { authenticateToken as protect } from '../middlewares/authMiddlewares.js';
+import { 
+  getCuentaByUsuario,
+  getCuentaInfo,           // ✅ NUEVO
+  getUsuarioByCuenta       // ✅ NUEVO
+} from '../controller/cuentaController.js';
 
 const router = express.Router();
 
@@ -43,5 +48,8 @@ router.get('/info', protect, async (req, res) => {
     });
   }
 });
+
+router.get('/:numeroCuenta/info', getCuentaInfo);        // ✅ NUEVO
+router.get('/:numeroCuenta/usuario', getUsuarioByCuenta);
 
 export default router;
