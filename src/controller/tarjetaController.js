@@ -2,6 +2,7 @@
 import pool from '../config/db.js';
 
 // Obtener tarjetas del usuario
+// controllers/tarjetaController.js - Modificar obtenerTarjetasUsuario
 export const obtenerTarjetasUsuario = async (req, res) => {
   try {
     const usuario_id = req.user.id;
@@ -23,22 +24,24 @@ export const obtenerTarjetasUsuario = async (req, res) => {
       [usuario_id]
     );
 
+    // ✅ Si no tiene tarjetas, podrías crear una automáticamente aquí
+    // o dejar que se cree solo en el registro
     if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
+      return res.json({
+        success: true,
+        data: [],
         message: 'No se encontraron tarjetas para este usuario'
       });
     }
 
-    // Formatear respuesta para el frontend
     const tarjetasFormateadas = result.rows.map(tarjeta => ({
       id: tarjeta.id,
       numero_tarjeta: tarjeta.numero_tarjeta,
       fecha_vencimiento: tarjeta.fecha_vencimiento,
       cvv: tarjeta.cvv,
       nombre_titular: tarjeta.nombre_titular,
-      tipo_tarjeta: tarjeta.tipo_tarjeta,
-      marca_tarjeta: tarjeta.marca_tarjeta,
+      tipo_tarjeta: tarjeta.tipo_tarjeta || 'débito', // Valor por defecto
+      marca_tarjeta: tarjeta.marca_tarjeta || 'Mastercard',
       saldo_actual: parseFloat(tarjeta.saldo_actual),
       created_at: tarjeta.created_at
     }));

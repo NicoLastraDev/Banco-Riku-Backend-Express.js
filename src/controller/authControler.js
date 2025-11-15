@@ -61,51 +61,113 @@ export const checkStatus = async (req, res) => {
 };
 
 export const register = async (req, res) => {
-  const {nombre, email, password, rol_id = 2} = req.body
-
-  console.log('🔔 [BACKEND 1] Register INICIADO -', email, new Date().toISOString());
-
+  const client = await pool.connect();
+  
   try {
-    console.log('🔔 [BACKEND 2] Verificando si usuario existe...');
-    const userExist = await pool.query('SELECT * FROM usuarios where email = $1', [email])
+    await client.query('BEGIN'); // Iniciar transacción
 
-    if(userExist.rows.length > 0){
-      console.log('❌ [BACKEND 3] Usuario YA EXISTE en DB:', email);
-      return res.status(400).json({message: 'Usuario ya registrado'})
-    }
+    const { nombre, email, password } = req.body;
 
-    console.log('🔔 [BACKEND 4] Usuario NO existe, procediendo con registro...');
-    const hashedPassword = await bcrypt.hash(password, 10)
-
-    console.log('🔔 [BACKEND 5] Insertando usuario en DB...');
-    const result = await pool.query(
-      'INSERT INTO usuarios (nombre, email, password, rol_id) VALUES($1,$2,$3,$4) RETURNING id, nombre, email', 
-      [nombre, email, hashedPassword, rol_id]
+    // 1. Verificar si el usuario ya existe
+    const userExists = await client.query(
+      'SELECT id FROM usuarios WHERE email = $1',
+      [email]
     );
 
-    const newUser = result.rows[0];
-    console.log('✅ [BACKEND 6] Usuario INSERTADO con ID:', newUser.id);
+    if (userExists.rows.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        message: 'El usuario ya existe'
+      });
+    }
 
-    const token = generateToken(newUser.id);
-    console.log('✅ [BACKEND 7] Token generado para usuario:', newUser.id);
+    // 2. Hash de la contraseña
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-    console.log('✅ [BACKEND 8] Enviando respuesta exitosa');
-    return res.status(201).json({
-      message: 'Usuario registrado correctamente',
+    // 3. Crear usuario
+    const userResult = await client.query(
+      `INSERT INTO usuarios (nombre, email, password) 
+       VALUES ($1, $2, $3) 
+       RETURNING id, nombre, email, created_at`,
+      [nombre, email, hashedPassword]
+    );
+
+    const newUser = userResult.rows[0];
+
+    // 4. ✅ CREAR CUENTA BANCARIA AUTOMÁTICAMENTE
+    const cuentaResult = await client.query(
+      `INSERT INTO cuentas (usuario_id, numero_cuenta, saldo, tipo_cuenta) 
+       VALUES ($1, $2, $3, $4) 
+       RETURNING *`,
+      [newUser.id, generarNumeroCuenta(), 0.00, 'corriente']
+    );
+
+    const nuevaCuenta = cuentaResult.rows[0];
+
+    // 5. ✅ CREAR TARJETA DÉBITO AUTOMÁTICAMENTE
+    const tarjetaResult = await client.query(
+      `INSERT INTO tarjetas (
+        usuario_id, 
+        numero_tarjeta, 
+        fecha_vencimiento, 
+        cvv, 
+        nombre_titular,
+        tipo_tarjeta,
+        marca_tarjeta,
+        saldo_actual
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *`,
+      [
+        newUser.id,
+        generarNumeroTarjeta(),
+        generarFechaVencimiento(),
+        generarCVV(),
+        nombre.toUpperCase(), // Nombre en mayúsculas
+        'débito',
+        'Mastercard',
+        0.00 // Saldo inicial
+      ]
+    );
+
+    const nuevaTarjeta = tarjetaResult.rows[0];
+
+    await client.query('COMMIT'); // Confirmar transacción
+
+    // 6. Generar token (tu lógica actual de JWT)
+    const token = generarToken(newUser.id);
+
+    res.status(201).json({
+      success: true,
+      message: 'Usuario registrado exitosamente con cuenta y tarjeta',
       token: token,
       user: {
         id: newUser.id,
         nombre: newUser.nombre,
-        email: newUser.email,
-        roles: ['user']
+        email: newUser.email
+      },
+      cuenta: {
+        numero_cuenta: nuevaCuenta.numero_cuenta,
+        saldo: nuevaCuenta.saldo
+      },
+      tarjeta: {
+        numero_tarjeta: nuevaTarjeta.numero_tarjeta,
+        tipo_tarjeta: nuevaTarjeta.tipo_tarjeta
       }
     });
 
   } catch (error) {
-    console.error('💥 [BACKEND ERROR] En register:', error.message);
-    return res.status(500).json({message: 'Error en el servidor'})
+    await client.query('ROLLBACK');
+    console.error('Error en registro:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error del servidor al registrar usuario'
+    });
+  } finally {
+    client.release();
   }
-}
+};
 
 export const login = async(req,res) => {
   const {email, password} = req.body
