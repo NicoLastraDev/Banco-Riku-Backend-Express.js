@@ -70,7 +70,7 @@ export const register = async (req, res) => {
   const client = await pool.connect();
   
   try {
-    await client.query('BEGIN'); // Iniciar transacción
+    await client.query('BEGIN');
 
     const { nombre, email, password } = req.body;
 
@@ -102,7 +102,7 @@ export const register = async (req, res) => {
 
     const newUser = userResult.rows[0];
 
-    // 4. ✅ CREAR CUENTA BANCARIA AUTOMÁTICAMENTE
+    // 4. Crear cuenta bancaria
     const cuentaResult = await client.query(
       `INSERT INTO cuentas (usuario_id, numero_cuenta, saldo, tipo_cuenta) 
        VALUES ($1, $2, $3, $4) 
@@ -110,9 +110,7 @@ export const register = async (req, res) => {
       [newUser.id, generarNumeroCuenta(), 0.00, 'corriente']
     );
 
-    const nuevaCuenta = cuentaResult.rows[0];
-
-    // 5. ✅ CREAR TARJETA DÉBITO AUTOMÁTICAMENTE
+    // 5. Crear tarjeta débito
     const tarjetaResult = await client.query(
       `INSERT INTO tarjetas (
         usuario_id, 
@@ -130,19 +128,17 @@ export const register = async (req, res) => {
         generarNumeroTarjeta(),
         generarFechaVencimiento(),
         generarCVV(),
-        nombre.toUpperCase(), // Nombre en mayúsculas
+        nombre.toUpperCase(),
         'débito',
         'MASTERCARD',
-        0.00 // Saldo inicial
+        0.00
       ]
     );
 
-    const nuevaTarjeta = tarjetaResult.rows[0];
+    await client.query('COMMIT');
 
-    await client.query('COMMIT'); // Confirmar transacción
-
-    // 6. Generar token (tu lógica actual de JWT)
-    const token = generarToken(newUser.id);
+    // ✅ CORREGIDO: usar generateToken (con "e")
+    const token = generateToken(newUser.id); // ← CAMBIO AQUÍ
 
     res.status(201).json({
       success: true,
@@ -154,21 +150,21 @@ export const register = async (req, res) => {
         email: newUser.email
       },
       cuenta: {
-        numero_cuenta: nuevaCuenta.numero_cuenta,
-        saldo: nuevaCuenta.saldo
+        numero_cuenta: cuentaResult.rows[0].numero_cuenta,
+        saldo: cuentaResult.rows[0].saldo
       },
       tarjeta: {
-        numero_tarjeta: nuevaTarjeta.numero_tarjeta,
-        tipo_tarjeta: nuevaTarjeta.tipo_tarjeta
+        numero_tarjeta: tarjetaResult.rows[0].numero_tarjeta,
+        tipo_tarjeta: tarjetaResult.rows[0].tipo_tarjeta
       }
     });
 
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error en registro:', error);
+    console.error('❌ Error en registro:', error);
     res.status(500).json({
       success: false,
-      message: 'Error del servidor al registrar usuario'
+      message: 'Error del servidor al registrar usuario: ' + error.message
     });
   } finally {
     client.release();
