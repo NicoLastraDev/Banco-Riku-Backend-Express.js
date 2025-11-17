@@ -92,7 +92,7 @@ export const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 3. Crear usuario
+    // 3. Crear usuario (el trigger se ejecutará automáticamente después de esto)
     const userResult = await client.query(
       `INSERT INTO usuarios (nombre, email, password) 
       VALUES ($1, $2, $3) 
@@ -102,30 +102,30 @@ export const register = async (req, res) => {
 
     const newUser = userResult.rows[0];
 
-    // 4. Crear cuenta bancaria
-    const cuentaResult = await client.query(
-      `INSERT INTO cuentas (usuario_id, numero_cuenta, saldo, tipo_cuenta) 
-      VALUES ($1, $2, $3, $4) 
-       RETURNING *`,
-      [newUser.id, generarNumeroCuenta(), 0.00, 'VISTA']
-    );
-
-    // 5. ✅ COMENTADO: El trigger creará la tarjeta automáticamente
-    // const tarjetaResult = await client.query(...)
-
     await client.query('COMMIT');
 
-    // 6. ✅ OBTENER LA TARJETA QUE CREÓ EL TRIGGER
+    // 4. Obtener la cuenta que creó el trigger
+    const cuentaCreada = await client.query(
+      'SELECT * FROM cuentas WHERE usuario_id = $1 ORDER BY created_at DESC LIMIT 1',
+      [newUser.id]
+    );
+
+    // 5. Obtener la tarjeta que creó el trigger
     const tarjetaCreada = await client.query(
       'SELECT * FROM tarjetas WHERE usuario_id = $1 ORDER BY created_at DESC LIMIT 1',
       [newUser.id]
     );
 
+    // ✅ Validar que el trigger creó ambos
+    if (!cuentaCreada.rows[0] || !tarjetaCreada.rows[0]) {
+      throw new Error('El trigger no creó la cuenta o tarjeta automáticamente');
+    }
+
     const token = generateToken(newUser.id);
 
     res.status(201).json({
       success: true,
-      message: 'Usuario registrado exitosamente con cuenta y tarjeta',
+      message: 'Usuario registrado exitosamente con cuenta y tarjeta creadas automáticamente',
       token: token,
       user: {
         id: newUser.id,
@@ -133,12 +133,14 @@ export const register = async (req, res) => {
         email: newUser.email
       },
       cuenta: {
-        numero_cuenta: cuentaResult.rows[0].numero_cuenta,
-        saldo: cuentaResult.rows[0].saldo
+        numero_cuenta: cuentaCreada.rows[0].numero_cuenta,
+        saldo: cuentaCreada.rows[0].saldo,
+        tipo_cuenta: cuentaCreada.rows[0].tipo_cuenta
       },
       tarjeta: {
-        numero_tarjeta: tarjetaCreada.rows[0].numero_tarjeta,  // ← CAMBIADO
-        tipo_tarjeta: tarjetaCreada.rows[0].tipo_tarjeta       // ← CAMBIADO
+        numero_tarjeta: tarjetaCreada.rows[0].numero_tarjeta,
+        tipo_tarjeta: tarjetaCreada.rows[0].tipo_tarjeta,
+        fecha_vencimiento: tarjetaCreada.rows[0].fecha_vencimiento
       }
     });
 
