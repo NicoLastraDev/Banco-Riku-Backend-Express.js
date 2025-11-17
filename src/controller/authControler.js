@@ -95,8 +95,8 @@ export const register = async (req, res) => {
     // 3. Crear usuario
     const userResult = await client.query(
       `INSERT INTO usuarios (nombre, email, password) 
-       VALUES ($1, $2, $3) 
-       RETURNING id, nombre, email, created_at`,
+      VALUES ($1, $2, $3) 
+      RETURNING id, nombre, email, created_at`,
       [nombre, email, hashedPassword]
     );
 
@@ -105,40 +105,23 @@ export const register = async (req, res) => {
     // 4. Crear cuenta bancaria
     const cuentaResult = await client.query(
       `INSERT INTO cuentas (usuario_id, numero_cuenta, saldo, tipo_cuenta) 
-       VALUES ($1, $2, $3, $4) 
+      VALUES ($1, $2, $3, $4) 
        RETURNING *`,
-      [newUser.id, generarNumeroCuenta(), 0.00, 'corriente']
+      [newUser.id, generarNumeroCuenta(), 0.00, 'VISTA']
     );
 
-    // 5. Crear tarjeta débito
-    const tarjetaResult = await client.query(
-      `INSERT INTO tarjetas (
-        usuario_id, 
-        numero_tarjeta, 
-        fecha_vencimiento, 
-        cvv, 
-        nombre_titular,
-        tipo_tarjeta,
-        marca_tarjeta,
-        saldo_actual
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING *`,
-      [
-        newUser.id,
-        generarNumeroTarjeta(),
-        generarFechaVencimiento(),
-        generarCVV(),
-        nombre.toUpperCase(),
-        'DEBITO',
-        'MASTERCARD',
-        0.00
-      ]
-    );
+    // 5. ✅ COMENTADO: El trigger creará la tarjeta automáticamente
+    // const tarjetaResult = await client.query(...)
 
     await client.query('COMMIT');
 
-    // ✅ CORREGIDO: usar generateToken (con "e")
-    const token = generateToken(newUser.id); // ← CAMBIO AQUÍ
+    // 6. ✅ OBTENER LA TARJETA QUE CREÓ EL TRIGGER
+    const tarjetaCreada = await client.query(
+      'SELECT * FROM tarjetas WHERE usuario_id = $1 ORDER BY created_at DESC LIMIT 1',
+      [newUser.id]
+    );
+
+    const token = generateToken(newUser.id);
 
     res.status(201).json({
       success: true,
@@ -154,8 +137,8 @@ export const register = async (req, res) => {
         saldo: cuentaResult.rows[0].saldo
       },
       tarjeta: {
-        numero_tarjeta: tarjetaResult.rows[0].numero_tarjeta,
-        tipo_tarjeta: tarjetaResult.rows[0].tipo_tarjeta
+        numero_tarjeta: tarjetaCreada.rows[0].numero_tarjeta,  // ← CAMBIADO
+        tipo_tarjeta: tarjetaCreada.rows[0].tipo_tarjeta       // ← CAMBIADO
       }
     });
 
