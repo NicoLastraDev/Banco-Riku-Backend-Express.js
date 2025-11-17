@@ -84,11 +84,12 @@ export const addBeneficiary = async (req, res) => {
       })
     }
 
+    // ✅ CORREGIDO: Cerrar el template string correctamente
     // Verificar que la cuenta exista
     const accountExists = await pool.query(
-  `SELECT id FROM cuentas WHERE REPLACE(numero_cuenta, '-', '') = $1`,
-  [numero_cuenta.replace(/-/g, '')]
-)
+      `SELECT id FROM cuentas WHERE REPLACE(numero_cuenta, '-', '') = $1`,
+      [numero_cuenta.replace(/-/g, '')]
+    )
 
     if (accountExists.rows.length === 0) {
       return res.status(404).json({
@@ -105,17 +106,16 @@ export const addBeneficiary = async (req, res) => {
       [usuario_id, nombre, nombre_cuenta, numero_cuenta, tipo_cuenta, banco_destino || 'Banco Riku']
     )
 
-    // ✅ AGREGAR RETURN aquí también
     return res.status(201).json({
       success: true,
       message: 'Destinatario agregado correctamente'
     })
 
   } catch (error) {
-    console.log('Error al agregar destinatario', error)
+    console.log('❌ Error al agregar destinatario:', error)
     return res.status(500).json({
       success: false,
-      message: 'Error en el servidor'
+      message: 'Error en el servidor: ' + error.message
     })
   }
 }
