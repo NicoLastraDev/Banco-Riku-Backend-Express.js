@@ -106,6 +106,22 @@ export const addBeneficiary = async (req, res) => {
       [usuario_id, nombre, nombre_cuenta, numero_cuenta, tipo_cuenta, banco_destino || 'Banco Riku']
     )
 
+    // ✅ CREAR NOTIFICACIÓN EN BD PARA EL USUARIO
+    await pool.query(
+      `INSERT INTO notificaciones 
+      (usuario_id, tipo, titulo, mensaje, leida, created_at)
+      VALUES ($1, $2, $3, $4, $5, NOW())`,
+      [
+        usuario_id,
+        'destinatario_agregado',
+        '👥 Destinatario Agregado', 
+        `Agregaste a ${nombre} (${numero_cuenta}) como destinatario`,
+        false
+      ]
+    );
+    
+    console.log('✅ Notificación creada para usuario:', usuario_id);
+
     return res.status(201).json({
       success: true,
       message: 'Destinatario agregado correctamente'

@@ -6,7 +6,7 @@ export const realizarTransferencia = async (req, res) => {
   try {
     await client.query('BEGIN');
     
-    const { cuenta_destino, monto, descripcion } = req.body;
+    const { fromAccountId, cuenta_destino, monto, descripcion } = req.body;
     const usuario_id = req.user.id;
 
     console.log('💸 Iniciando transferencia:', { cuenta_destino, monto, descripcion, usuario_id });
@@ -105,39 +105,39 @@ export const realizarTransferencia = async (req, res) => {
       ]
     );
 
+    // ✅ 7. CREAR NOTIFICACIONES PARA AMBOS USUARIOS (DENTRO DE LA TRANSACCIÓN)
+    
+    // ✅ NOTIFICACIÓN PARA EL REMITENTE (quien envía)
+    await client.query(
+      `INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje, leida, created_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())`,
+      [
+        usuario_id, // ID del usuario que envía
+        'transferencia_exitosa',
+        '✅ Transferencia Exitosa',
+        `Enviaste $${monto} a cuenta ${cuenta_destino}`,
+        false
+      ]
+    );
+    console.log('✅ Notificación creada para remitente:', usuario_id);
+
+    // ✅ NOTIFICACIÓN PARA EL DESTINATARIO (quien recibe)
+    await client.query(
+      `INSERT INTO notificaciones 
+       (usuario_id, tipo, titulo, mensaje, leida, created_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())`,
+      [
+        cuentaDestino.usuario_id, // ID del usuario que recibe
+        'transferencia_recibida',
+        '💰 Transferencia Recibida',
+        `Recibiste $${monto} de ${nombreRemitente}`,
+        false
+      ]
+    );
+    console.log('✅ Notificación creada para destinatario:', cuentaDestino.usuario_id);
+
     await client.query('COMMIT');
-    console.log('✅ Transferencia completada exitosamente');
-
-    // 7. CREAR NOTIFICACIÓN PARA EL DESTINATARIO
-    try {
-      const destinatarioInfo = await client.query(
-        `SELECT u.id as usuario_id, u.nombre 
-         FROM cuentas c 
-         JOIN usuarios u ON c.usuario_id = u.id 
-         WHERE c.numero_cuenta = $1`,
-        [cuenta_destino]
-      );
-
-      if (destinatarioInfo.rows.length > 0) {
-        const destinatario = destinatarioInfo.rows[0];
-        
-        await client.query(
-          `INSERT INTO notificaciones 
-           (usuario_id, tipo, titulo, mensaje, leida, created_at)
-           VALUES ($1, $2, $3, $4, $5, NOW())`,
-          [
-            destinatario.usuario_id,
-            'success',
-            '💰 Transferencia Recibida',
-            `Recibiste $${monto} de ${nombreRemitente}`, // ✅ USAR nombreRemitente
-            false
-          ]
-        );
-        console.log('✅ Notificación creada para destinatario:', destinatario.usuario_id);
-      }
-    } catch (error) {
-      console.log('⚠️ Error creando notificación para destinatario:', error);
-    }
+    console.log('✅ Transferencia y notificaciones completadas exitosamente');
 
     res.json({
       success: true,
@@ -146,7 +146,8 @@ export const realizarTransferencia = async (req, res) => {
         transaccion: transaccionOrigen.rows[0],
         saldo_actual: cuentaOrigen.saldo - monto,
         cuenta_destino: cuentaDestino.numero_cuenta,
-        destinatario_notificado: true
+        destinatario_notificado: true,
+        notificaciones_creadas: true
       }
     });
 
